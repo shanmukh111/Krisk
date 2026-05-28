@@ -1,0 +1,16 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Database
+backend/chroma_db/
+
+# Keys
+backend/config.py
+
+# Node
+convo-frontend/node_modules/
+convo-frontend/build/
