@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from state import PipelineState
 from config import OPENAI_API_KEY, OPENAI_MODEL
-from utils.memory import save_conversation
+from utils.cognee_memory import save_conversation
 
 llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.3)
 
@@ -36,8 +36,9 @@ def intent_agent(state: PipelineState) -> dict:
     past_prefs = state.get("past_preferences", [])
     past_context = ""
     if past_prefs:
-        pref_text = ", ".join([f"{p.get('item')} ({p.get('mood')})" for p in past_prefs[:3]])
-        past_context = f"\nUser past preferences: {pref_text}"
+        pref_text = ", ".join(p.get("summary", "") for p in past_prefs[:3] if p.get("summary"))
+        if pref_text:
+            past_context = f"\nUser past preferences: {pref_text}"
 
     try:
         response = llm.invoke([

@@ -96,6 +96,18 @@ def health():
     return {"status": "ok", "openai": bool(OPENAI_API_KEY), "whisper": WHISPER_MODEL}
 
 
+@app.get("/spotify/search")
+def spotify_search(q: str):
+    if not q.strip():
+        raise HTTPException(status_code=400, detail="Query required")
+    try:
+        from utils.spotify_api import search_tracks
+        tracks = search_tracks(q)
+        return {"tracks": tracks}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/recommend")
 def recommend(req: RecommendRequest):
     if not req.transcript.strip():
