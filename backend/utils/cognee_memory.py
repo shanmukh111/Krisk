@@ -5,6 +5,7 @@ Drop-in replacement for utils/memory.py (ChromaDB version)
 import asyncio
 import threading
 from datetime import datetime
+from cognee import SearchType
 
 import cognee
 
@@ -78,13 +79,28 @@ def get_similar_conversations(query: str, n: int = 3) -> list:
         return []
 
 
+def _extract_chunk_text(item):
+    """CHUNKS results are dicts with a 'text' field; other types yield strings."""
+    if isinstance(item, dict):
+        return item.get("text", "")
+    return str(item)
+
+
+async def _async_search_chunks(query: str):
+    # CHUNKS = literal retrieved text (deterministic), not an LLM paraphrase,
+    # so dish keywords survive for the ranker's substring match.
+    return await cognee.search(query_text=query, query_type=SearchType.CHUNKS)
+
+
 def get_past_preferences(query: str, n: int = 5) -> list:
     try:
-        results = _run_async(_async_search(f"What does the user prefer related to: {query}"), wait=True, timeout=30)
+        results = _run_async(_async_search_chunks(query), wait=True, timeout=30)
         prefs = []
         for r in results:
             for item in r.get("search_result", [])[:n]:
-                prefs.append({"summary": item})
+                text = _extract_chunk_text(item)
+                if text:
+                    prefs.append({"summary": text})
         return prefs
     except Exception as e:
         print(f"[cognee_memory] preference retrieval error: {e}")
