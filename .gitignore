@@ -14,3 +14,6 @@ backend/config.py
 # Node
 convo-frontend/node_modules/
 convo-frontend/build/
+daisy-components/daisy/node_modules/
+daisy-components/daisy/build/
+daisy-components/daisy/dist/
