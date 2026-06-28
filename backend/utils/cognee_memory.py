@@ -8,6 +8,34 @@ from datetime import datetime
 
 import cognee
 
+# --- Single persistent background event loop for ALL Cognee operations ---
+_loop = None
+_loop_thread = None
+_loop_lock = threading.Lock()
+
+
+def _ensure_loop():
+    global _loop, _loop_thread
+    with _loop_lock:
+        if _loop is None:
+            _loop = asyncio.new_event_loop()
+
+            def _run_loop():
+                asyncio.set_event_loop(_loop)
+                _loop.run_forever()
+
+            _loop_thread = threading.Thread(target=_run_loop, daemon=True)
+            _loop_thread.start()
+    return _loop
+
+
+def _run_async(coro, wait=True, timeout=60):
+    loop = _ensure_loop()
+    future = asyncio.run_coroutine_threadsafe(coro, loop)
+    if wait:
+        return future.result(timeout=timeout)
+    return future
+
 
 def _format_conversation_text(transcript: str, intents: list, mood: str, context: str) -> str:
     intent_text = ", ".join([f"{i.get('item')} ({i.get('category')})" for i in intents])
@@ -24,16 +52,12 @@ async def _async_save(text: str):
 
 
 def save_conversation(transcript: str, intents: list, mood: str, context: str):
-    """Writes to Cognee's graph. Runs in a background thread — does NOT block the pipeline."""
+    """Writes to Cognee's graph via the shared background loop. Fire-and-forget."""
     text = _format_conversation_text(transcript, intents, mood, context)
-
-    def _run():
-        try:
-            asyncio.run(_async_save(text))
-        except Exception as e:
-            print(f"[cognee_memory] background save error: {e}")
-
-    threading.Thread(target=_run, daemon=True).start()
+    try:
+        _run_async(_async_save(text), wait=False)
+    except Exception as e:
+        print(f"[cognee_memory] background save error: {e}")
     return None
 
 
@@ -43,7 +67,7 @@ async def _async_search(query: str):
 
 def get_similar_conversations(query: str, n: int = 3) -> list:
     try:
-        results = asyncio.run(_async_search(query))
+        results = _run_async(_async_search(query), wait=True, timeout=30)
         similar = []
         for r in results:
             for item in r.get("search_result", [])[:n]:
@@ -56,7 +80,7 @@ def get_similar_conversations(query: str, n: int = 3) -> list:
 
 def get_past_preferences(query: str, n: int = 5) -> list:
     try:
-        results = asyncio.run(_async_search(f"What does the user prefer related to: {query}"))
+        results = _run_async(_async_search(f"What does the user prefer related to: {query}"), wait=True, timeout=30)
         prefs = []
         for r in results:
             for item in r.get("search_result", [])[:n]:
