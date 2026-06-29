@@ -154,7 +154,7 @@ def chat(req: RecommendRequest):
     session = session_memory.get(req.session_id, {})
     is_followup = is_followup_question(transcript, history, session)
 
-    rec_keywords = ["want","need","craving","hungry","buy","watch","food","shoes","movie","video","order","find","show","looking","suggest","recommend","highlights","match","song","music"]
+    rec_keywords = ["want","need","craving","hungry","buy","watch","food","shoes","movie","video","order","find","show","looking","suggest","recommend","highlights","match","song","music","schedule","calendar","event","meeting","appointment","free","busy","tomorrow","tonight","book","plan","remind","this week","next week"]
     recommendations = None
     if not is_followup and any(k in transcript.lower() for k in rec_keywords):
         recommendations = run_pipeline(transcript, history, thread_id=req.session_id)
@@ -196,6 +196,19 @@ def chat(req: RecommendRequest):
     if recommendations and recommendations.get("recommendations"):
         new_lines = [format_rec(i, r) for i, r in enumerate(recommendations["recommendations"][:6])]
         rec_context += "\n\n[New recommendations just fetched:\n" + "\n".join(new_lines) + "]"
+    if recommendations and recommendations.get("calendar_context"):
+        cal = recommendations["calendar_context"]
+        events = cal.get("events", []) if isinstance(cal, dict) else []
+        if events:
+            cal_lines = []
+            for e in events[:5]:
+                summary = e.get("summary", "(no title)")
+                start = e.get("start", {})
+                when = start.get("dateTime", start.get("date", "")) if isinstance(start, dict) else ""
+                cal_lines.append(f"- {summary} at {when}")
+            rec_context += "\n\n[User's upcoming calendar:\n" + "\n".join(cal_lines) + "\nMention these naturally if the user asks about their schedule or timing.]"
+        else:
+            rec_context += "\n\n[User's calendar is clear for the next week.]"
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for h in history[-8:]:
@@ -217,4 +230,6 @@ def chat(req: RecommendRequest):
         "intents": recommendations.get("intents", []) if recommendations else [],
         "mood": recommendations.get("mood", "neutral") if recommendations else "neutral",
         "context": recommendations.get("context", "general") if recommendations else "general",
+        "calendar_context": recommendations.get("calendar_context") if recommendations else None,
+        "calendar_action": recommendations.get("calendar_action") if recommendations else None,
     }
