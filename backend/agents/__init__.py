@@ -7,3 +7,4 @@ from .zomato_agent import zomato_agent
 from .flipkart_agent import flipkart_agent
 from .youtube_agent import youtube_agent
 from .ranker_agent import ranker_agent
+from .calendar_agent import calendar_agent

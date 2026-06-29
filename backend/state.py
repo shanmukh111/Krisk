@@ -30,3 +30,7 @@ class PipelineState(TypedDict):
     final_recommendations:  Annotated[List[Dict],             keep_last]
     error:                  Annotated[Optional[str],          keep_last]
     iteration:              Annotated[int,                    keep_last]
+    calendar_context:       Annotated[Optional[Dict],         keep_last]
+    calendar_action:        Annotated[Optional[Dict],         keep_last]
+    calendar_write:         Annotated[Optional[Dict],         keep_last]
+    confirm_calendar_write: Annotated[bool,                   keep_last]
