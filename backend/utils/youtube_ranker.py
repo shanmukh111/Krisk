@@ -2,9 +2,11 @@
 utils/youtube_ranker.py — Multimodal YouTube video ranking
 Uses Gemma3:4b (Ollama) to analyze video frames + metadata scoring
 """
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import ollama
-client = ollama.Client(host="http://172.26.185.163:11434")
+client = ollama.Client(host=os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434"))
 import httpx
 import json
 from datetime import datetime, timezone
