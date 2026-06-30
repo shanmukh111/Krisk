@@ -21,3 +21,5 @@ daisy-components/daisy/node_modules/
 daisy-components/daisy/build/
 daisy-components/daisy/dist/
 backend/gcp-oauth.keys.json
+backend/krisk_graph*.html
+backend/graph_*.png
