@@ -33,7 +33,7 @@ This hackathon scores **depth on Cognee's memory lifecycle** highest, so that is
 |---|---|---|
 | `remember` (add + cognify) | ✅ | Every conversation write; a 65-memory persona seed built a **428-node, 694-edge** graph |
 | `recall` (search) | ✅ | `CHUNKS` search for literal keyword matching (ranker/forget) + `GRAPH_COMPLETION` for human-readable display + session-tagged recall |
-| `forget` | ✅ | Hybrid **LLM-judged** delete, propose-then-confirm guardrailed; verified precise on a 20-memory test (deleted exactly the 5 relevant memories, rejected all 10 false positives) |
+| `forget` | ✅ | Hybrid LLM-judged delete, propose-then-confirm guardrailed; wired live into /chat and verified precise on a 20-memory test (deleted exactly the relevant memories, rejected all false positives) |
 | `improve` — structural | ✅ | `build_global_context_index` added **+77 `GlobalContextSummary` nodes** (428 → 505), consolidating scattered preferences; verified by node-type diff |
 | `improve` — feedback loop | ✅ | Full `recall → get_session → add_feedback → improve(session_ids)` loop; **+4 nodes** (505 → 509) persisting the rated Q&A and a distilled learning anchored to the right entity |
 | `memify` | ⚠️ explored | In 1.2.2, default `memify()` runs only `index_data_points` — verified as a no-op on this graph (509 → 509) *and* on tailored data. Its shipped enrichment tasks are session/feedback primitives that `improve(session_ids=…)` already orchestrates. Honestly reported, not oversold. |
