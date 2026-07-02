@@ -152,6 +152,32 @@ def chat(req: RecommendRequest):
     history = req.conversation_history or []
 
     session = session_memory.get(req.session_id, {})
+
+    # Forget intercept (before recommendation pipeline)
+    FORGET_KEYWORDS = ["forget", "stop remembering", "don't remember", "delete my", "remove my"]
+    CONFIRM_WORDS = ["yes", "confirm", "go ahead", "do it", "delete them", "forget them"]
+    pending = session.get("pending_forget")
+    if pending and any(w in transcript.lower() for w in CONFIRM_WORDS):
+        from utils.cognee_memory import forget_preference
+        result = forget_preference(pending["query"], confirm=True)
+        session_memory.setdefault(req.session_id, {}).pop("pending_forget", None)
+        return {"reply": f"Done, forgot {result.get('forgotten', 0)} memory(ies).",
+                "recommendations": None, "is_followup": False}
+    if any(k in transcript.lower() for k in FORGET_KEYWORDS):
+        from utils.cognee_memory import forget_preference
+        _stop = {"forget", "my", "stop", "remembering", "don't", "dont", "remember",
+                 "delete", "remove", "preferences", "preference", "about", "the", "me",
+                 "please", "all", "everything", "memories", "memory"}
+        _topic = " ".join(w for w in transcript.split() if w.lower().strip(".,!?") not in _stop).strip()
+        _query = _topic if _topic else transcript
+        proposal = forget_preference(_query, confirm=False)
+        if proposal.get("status") != "needs_confirmation":
+            return {"reply": "I couldn't find anything matching that to forget.",
+                    "recommendations": None, "is_followup": False}
+        n = proposal.get("count", 0)
+        session_memory.setdefault(req.session_id, {})["pending_forget"] = {"query": _query}
+        return {"reply": f"I found {n} memory(ies) matching that. Say yes to confirm.",
+                "recommendations": None, "is_followup": False}
     is_followup = is_followup_question(transcript, history, session)
 
     rec_keywords = ["want","need","craving","hungry","buy","watch","food","shoes","movie","video","order","find","show","looking","suggest","recommend","highlights","match","song","music","schedule","calendar","event","meeting","appointment","free","busy","tomorrow","tonight","book","plan","remind","this week","next week"]
@@ -233,3 +259,4 @@ def chat(req: RecommendRequest):
         "calendar_context": recommendations.get("calendar_context") if recommendations else None,
         "calendar_action": recommendations.get("calendar_action") if recommendations else None,
     }
+
